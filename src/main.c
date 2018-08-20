@@ -1,11 +1,18 @@
 #include <stm32f4xx.h>
 #include <stdio.h>
+#include "../lib/delay.h"
+
 #define LED_PIN GPIO_Pin_14
 
 GPIO_InitTypeDef  GPIO_InitStructure;
+
+uint32_t multiplier;
+
 int main() {
 
 	SystemInit();
+
+	TM_Delay_Init();
 
 	/* GPIOG Peripheral clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -22,6 +29,12 @@ int main() {
 	{
 	// Set PG6 and PG8
 	GPIOB->BSRRL = LED_PIN;
+
+	TM_DelayMillis(5000);
+
+	GPIOB->BSRRH = LED_PIN;
+
+	TM_DelayMillis(5000);
 
 	}
 
