@@ -10,7 +10,6 @@ void TM_Delay_Init(void) {
 
     /* While loop takes 4 cycles */
     /* For 1 us delay, we need to divide with 4M */
-    printf("Freq: %d", RCC_Clocks.HCLK_Frequency);
     multiplier = RCC_Clocks.HCLK_Frequency / 4000000;
 }
 
