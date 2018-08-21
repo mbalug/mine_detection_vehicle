@@ -50,13 +50,26 @@ void Init_USART2()
 	NVIC_EnableIRQ(USART2_IRQn);
 }
 
+volatile char recieveBuffer[2000];
+volatile int i = 0;
+
 void USART2_IRQHandler()
 {
 	//USART_SendData(USART2, 'T');
 	// Do Something    /* RXNE handler */
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)
 	{
-		printf("%c\n",(char)USART_ReceiveData(USART2));
+		recieveBuffer[i] = (char)USART_ReceiveData(USART2);
+		if(recieveBuffer[i] == '\r')
+		{
+			recieveBuffer[i]=0;
+			printf("%s\n",recieveBuffer);
+			i = 0;
+		}
+		else
+		{
+			i++;
+		}
 
 	}
 }
