@@ -3,6 +3,9 @@
 #include "../lib/delay.h"
 
 #define LED_PIN GPIO_Pin_14
+#define SPI1_SS GPIO_Pin_4
+
+#define BLDC_ENABLE GPIO_Pin_1
 
 
 uint32_t multiplier;
@@ -89,6 +92,49 @@ void Init_USART6()
 	NVIC_EnableIRQ(USART6_IRQn);
 }
 
+void Init_SPI1()
+{
+	/*
+	 * PB3 -> SCK
+	 * PB4 -> MISO
+	 * PB5 -> MOSI
+	 * PA4 -> SS
+	 */
+
+	GPIO_InitTypeDef  GPIO_InitStructure;
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    // Initialize pins as alternating function
+    GPIO_InitStruct.GPIO_Pin = SPI1_SS;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI1);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI1);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI1);
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+    SPI_Cmd(SPI1, ENABLE);
+    SPI_InitTypeDef SPI_InitStructure;
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
+    SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
+    SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+    SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+    SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+    SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+    SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+    SPI_Init(SPI1, &SPI_InitStructure);
+
+}
 
 volatile char recieveBuffer[2000];
 volatile int i = 0;
@@ -173,6 +219,40 @@ void USART6_IRQHandler()
 	}
 }
 
+
+void init_BLDC_Controller()
+{
+	GPIO_InitTypeDef  GPIO_InitStructure;
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+
+    GPIO_InitStruct.GPIO_Pin = BLDC_ENABLE;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_SetBits(GPIOB, BLDC_ENABLE);
+
+}
+
+void send_BLDC_data(uint8_t address, uint8_t dataH, uint8_t dataL)
+{
+	GPIO_SetBits(GPIOA, SPI1_SS);
+	SPI_I2S_SendData(SPI1, address);
+	SPI_I2S_SendData(SPI1, dataH);
+	SPI_I2S_SendData(SPI1, dataL);
+	GPIO_ResetBits(GPIOA, SPI1_SS);
+}
+
+uint16_t get_BLDC_data(uint8_t address)
+{
+	GPIO_SetBits(GPIOA, SPI1_SS);
+	SPI_I2S_SendData(SPI1, address);
+	uint16_t data = SPI_I2S_ReceiveData(SPI1);
+	GPIO_ResetBits(GPIOA, SPI1_SS);
+	return data;
+}
+
 int main() {
 
 	SystemInit();
@@ -182,6 +262,11 @@ int main() {
 	Init_USART2();
 
 	Init_USART6();
+
+	Init_SPI1();
+
+	init_BLDC_Controller();
+
 	/* GPIOG Peripheral clock enable */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
@@ -204,6 +289,10 @@ int main() {
 	GPIO_Init(GPIOC, &GPIO_InitStructureIn);
 
 	printf("Ovo je zaista kul stvar");
+
+
+
+
 	while (1)
 	{
 		if(GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_13)==1)
