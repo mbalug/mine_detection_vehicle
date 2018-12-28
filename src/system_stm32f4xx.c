@@ -136,7 +136,7 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-  uint32_t SystemCoreClock = 16000000;
+  uint32_t SystemCoreClock = 96000000;
   const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
@@ -185,7 +185,6 @@ void SystemInit(void)
   /* Reset PLLCFGR register */
   RCC->PLLCFGR = 0x24003010;
 
-  /* Reset HSEBYP bit */
   RCC->CR &= (uint32_t)0xFFFBFFFF;
 
   /* Disable all interrupts */
